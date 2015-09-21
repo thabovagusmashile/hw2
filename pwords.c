@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include<pthread.h>
 
 typedef struct dict {
   char *word;
@@ -93,7 +94,7 @@ int
 main( int argc, char *argv[] ) {
   //dict_t *d = NULL;
   infile1 = stdin;
-  pthread_t thread;
+  pthread_t thread[4];
   if (argc >= 2) {
     infile1 = fopen (argv[1],"r");
   }
@@ -103,9 +104,9 @@ main( int argc, char *argv[] ) {
   }
   int i;
   for(i = 0; i < 4; i++)
-  pthread_create(&thread,NULL,words, NULL );
+  pthread_create(&thread[i],NULL,words, NULL );
   for(i = 0; i < 4; i++)
-  pthread_join(thread);
+  pthread_join(thread[i],NULL);
   print_dict( wd );
   fclose( infile1 );
 }
