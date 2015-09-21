@@ -1,0 +1,137 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include<pthread.h>
+pthread_mutex_t mutex1;
+typedef struct dict {
+  char *word;
+  int count;
+  struct dict *next;
+} dict_t;
+dict_t *d;
+FILE *infile;
+char *
+make_word( char *word ) 
+{
+return strcpy( malloc( strlen( word )+1 ), word );
+}
+
+dict_t *
+make_dict(char *word) {
+  dict_t *nd = (dict_t *) malloc( sizeof(dict_t) );
+  nd->word = make_word( word );
+  nd->count = 1;
+  nd->next = NULL;
+  return nd;
+}
+
+dict_t *
+insert_word( dict_t *d, char *word ) {
+  pthread_mutex_lock(&mutex1);
+  //   Insert word into dict or increment count if already there
+  //   return pointer to the updated dict
+  
+  dict_t *nd;
+  dict_t *pd = NULL;		// prior to insertion point 
+  dict_t *di = d;		// following insertion point
+  // Search down list to find if present or point of insertion
+  while(di && ( strcmp(word, di->word ) >= 0) ) { 
+    if( strcmp( word, di->word ) == 0 ) { 
+      di->count++;
+pthread_mutex_lock(&mutex1);		// increment count 
+      return d;			// return head 
+    }
+    pd = di;			// advance ptr pair
+    di = di->next;
+  }
+  nd = make_dict(word);		// not found, make entry 
+  nd->next = di;		// entry bigger than word or tail 
+  if (pd) {
+    pd->next = nd;
+  pthread_mutex_lock(&mutex1);
+    return d;			// insert beond head 
+  }
+ pthread_mutex_lock(&mutex1);
+  return nd;
+}
+
+void print_dict(dict_t *d) {
+  while (d) {
+    printf("[%d] %s\n", d->count, d->word);
+    d = d->next;
+  }
+}
+
+int
+get_word( char *buf, int n, FILE *infile) {
+  pthread_mutex_lock(&mutex1);
+  int inword = 0;
+  int c;  
+//pthread_mutex_lock(&mutex1);
+  while( (c = fgetc(infile)) != EOF ) {
+    if (inword && !isalpha(c)) {
+      buf[inword] = '\0';	// terminate the word string
+      pthread_mutex_unlock(&mutex1);
+      return 1;
+    } 
+    if (isalpha(c)) {
+      buf[inword++] = c;
+    }
+  }
+ pthread_mutex_unlock(&mutex1);
+ //pthread_exit(NULL);
+  return 0;			// no more words
+}
+
+#define MAXWORD 1024
+void *
+words( void *args) {
+  //pthread_mutex_lock(&mutex1);
+  //FILE *infile = (FILE *) args;
+  char wordbuf[MAXWORD];
+  while( get_word( wordbuf, MAXWORD, infile ) ) {
+    d = insert_word(d, wordbuf); // add to dict
+  }
+  //pthread_mutex_unlock(&mutex1);
+  //return wd;
+}
+
+int
+main( int argc, char *argv[] ) {
+  pthread_t thread[4];
+  //for(int i= 0;i<4;i++)
+  //{
+  //pthread_create(&thread[i],NULL,
+  //}
+  //for(int i=0;i<4;i++)
+  //{
+ // pthread_join(&thread,NULL);
+  //}  
+  d = NULL;
+  
+  infile = stdin;
+  if (argc >= 2) {
+    infile = fopen (argv[1],"r");
+  }
+  if( !infile ) {
+    printf("Unable to open %s\n",argv[1]);
+    exit( EXIT_FAILURE );
+  }
+  //printf("HERE \n");
+  int i;
+  for(i=0;i<4;i++)
+  {
+   pthread_create(&thread[i],NULL,words,NULL);
+   }
+   for(i=0;i<4;i++)
+{
+   pthread_join(&thread[i],NULL);
+}
+
+  
+  //d = words( infile );
+  print_dict( d );
+  fclose( infile );
+}
+
